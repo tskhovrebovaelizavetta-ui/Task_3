@@ -28,3 +28,8 @@ class FeedPageLocators:
         By.XPATH,
         "//ul[contains(@class, 'OrderHistory')]/li//p[contains(@class, 'text_type_digits-default')]"
     )
+    # Номера всех заказов в ленте
+    ALL_FEED_ORDER_NUMBERS = (
+        By.XPATH,
+        "//ul[contains(@class, 'OrderFeed')]//p[contains(@class, 'text_type_digits-default')]"
+    )

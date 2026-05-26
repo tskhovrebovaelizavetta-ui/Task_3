@@ -7,6 +7,7 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 
+from pages.base_page import BasePage
 from utils.constants import BASE_URL
 from utils.generators import generate_user_data
 from utils.api_helpers import UserApi
@@ -24,45 +25,33 @@ def pytest_addoption(parser):
 
 @pytest.fixture
 def driver(request):
-    """Фикстура создаёт WebDriver для выбранного браузера, открывает BASE_URL и закрывает после теста."""
+    """Фикстура создаёт WebDriver, открывает BASE_URL и закрывает после теста."""
     browser = request.config.getoption('--browser')
 
     if browser == 'firefox':
         options = FirefoxOptions()
-        driver = webdriver.Firefox(
+        web_driver = webdriver.Firefox(
             service=FirefoxService(GeckoDriverManager().install()),
             options=options
         )
     else:
         options = ChromeOptions()
-        driver = webdriver.Chrome(
+        web_driver = webdriver.Chrome(
             service=ChromeService(ChromeDriverManager().install()),
             options=options
         )
 
-    driver.maximize_window()
-    driver.get(BASE_URL)
+    web_driver.maximize_window()
+    # Открываем главную страницу через BasePage — там уже встроено ожидание оверлея.
+    BasePage(web_driver).open(BASE_URL)
 
-    # Ждём пока исчезнет модальный оверлей (лоадер) — в Firefox он держится дольше
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.by import By
-    try:
-        WebDriverWait(driver, 10).until(
-            EC.invisibility_of_element_located(
-                (By.XPATH, "//div[contains(@class, 'Modal_modal_overlay')]")
-            )
-        )
-    except Exception:
-        pass
-
-    yield driver
-    driver.quit()
+    yield web_driver
+    web_driver.quit()
 
 
 @pytest.fixture
 def created_user():
-    """Фикстура создаёт тестового пользователя через API и удаляет после теста.
+    """Создаёт тестового пользователя через API и удаляет после теста.
     Возвращает словарь с ключами: email, password, name.
     """
     user_data = generate_user_data()
@@ -74,6 +63,5 @@ def created_user():
 
     yield user_data
 
-    # Удаляем пользователя после теста, чтобы не засорять базу
     if access_token:
         UserApi.delete_user(access_token)

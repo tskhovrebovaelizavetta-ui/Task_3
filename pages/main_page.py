@@ -1,6 +1,5 @@
-import time
 import allure
-from selenium.webdriver.support import expected_conditions as EC
+
 from pages.base_page import BasePage
 from locators.main_page_locators import MainPageLocators
 
@@ -11,15 +10,15 @@ class MainPage(BasePage):
     def click_personal_account(self):
         self.click_element(MainPageLocators.PERSONAL_ACCOUNT_BUTTON)
 
-    @allure.step('Открыть раздел Конструктор')
+    @allure.step('Открыть раздел «Конструктор»')
     def click_constructor(self):
         self.click_element(MainPageLocators.CONSTRUCTOR_BUTTON)
 
-    @allure.step('Открыть раздел Лента заказов')
+    @allure.step('Открыть раздел «Лента Заказов»')
     def click_order_feed(self):
         self.click_element(MainPageLocators.ORDER_FEED_BUTTON)
 
-    @allure.step('Кликнуть на ингредиент для просмотра деталей')
+    @allure.step('Кликнуть по ингредиенту')
     def open_ingredient_details(self):
         self.click_element(MainPageLocators.INGREDIENT_CARD)
 
@@ -27,45 +26,54 @@ class MainPage(BasePage):
     def close_modal(self):
         self.click_element(MainPageLocators.MODAL_CLOSE_BUTTON)
 
-    @allure.step('Добавить ингредиент (булку) в конструктор перетаскиванием')
+    @allure.step('Перетащить булку в конструктор')
     def add_bun_to_constructor(self):
         self.drag_and_drop_element(
             MainPageLocators.BUN_INGREDIENT,
             MainPageLocators.BURGER_CONSTRUCTOR_DROP_AREA
         )
 
-    @allure.step('Добавить начинку в конструктор перетаскиванием')
+    @allure.step('Перетащить начинку в конструктор')
     def add_filling_to_constructor(self):
         self.drag_and_drop_element(
             MainPageLocators.FILLING_INGREDIENT,
             MainPageLocators.BURGER_CONSTRUCTOR_DROP_AREA
         )
 
-    @allure.step('Нажать Оформить заказ')
+    @allure.step('Нажать «Оформить заказ»')
     def click_place_order(self):
         self.click_element(MainPageLocators.PLACE_ORDER_BUTTON)
 
-    @allure.step('Получить значение каунтера ингредиента')
+    @allure.step('Получить значение каунтера булки')
     def get_bun_counter_value(self):
-        """Получает значение счётчика на первом ингредиенте.
-        Каунтер появляется после добавления ингредиента в конструктор.
-        """
-        bun_element = self.find_element(MainPageLocators.BUN_INGREDIENT)
-        counter = bun_element.find_element(*MainPageLocators.INGREDIENT_COUNTER)
+        """Каунтер на карточке булки появляется после её добавления в конструктор."""
+        bun = self.wait_for_visible(MainPageLocators.BUN_INGREDIENT)
+        counter = bun.find_element(*MainPageLocators.INGREDIENT_COUNTER)
         return int(counter.text)
-
-    @allure.step('Получить номер заказа из модального окна')
-    def get_order_number_from_modal(self):
-        """Ожидает, пока номер заказа появится (не «9999»), и возвращает его."""
-        # Ждём пока номер заказа прогрузится (вместо 9999 появится реальный номер)
-        for _ in range(30):
-            text = self.get_text(MainPageLocators.ORDER_NUMBER_IN_MODAL)
-            if text and text != '9999':
-                return text
-            time.sleep(1)
-        return self.get_text(MainPageLocators.ORDER_NUMBER_IN_MODAL)
 
     @allure.step('Дождаться появления модалки заказа')
     def wait_for_order_modal(self):
-        """Ожидает появления модалки с идентификатором заказа."""
-        self.find_element(MainPageLocators.ORDER_ID_LABEL)
+        self.wait_for_visible(MainPageLocators.ORDER_ID_LABEL)
+
+    @allure.step('Получить номер заказа из модального окна')
+    def get_order_number_from_modal(self):
+        """Дожидается реального номера заказа (вместо плейсхолдера 9999) и возвращает его."""
+        self.wait_for_order_number_loaded(
+            MainPageLocators.ORDER_NUMBER_IN_MODAL,
+            placeholder='9999'
+        )
+        return self.get_text(MainPageLocators.ORDER_NUMBER_IN_MODAL)
+
+    # ---------- Методы-проверки для тестов (чтобы тесты не работали с локаторами) ----------
+
+    @allure.step('Проверить, что открыта модалка «Детали ингредиента»')
+    def is_ingredient_modal_visible(self):
+        return self.is_element_visible(MainPageLocators.INGREDIENT_DETAILS_MODAL)
+
+    @allure.step('Дождаться закрытия модалки «Детали ингредиента»')
+    def wait_for_ingredient_modal_closed(self):
+        return self.wait_for_invisible(MainPageLocators.INGREDIENT_DETAILS_MODAL)
+
+    @allure.step('Проверить, что модалка с номером заказа отображается')
+    def is_order_number_modal_visible(self):
+        return self.is_element_visible(MainPageLocators.ORDER_NUMBER_IN_MODAL)
